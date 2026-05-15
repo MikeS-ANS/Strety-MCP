@@ -171,6 +171,6 @@ MIT — free to use, modify, and distribute. See [LICENSE](LICENSE) for details.
 
 ## Credits
 
-Built by Mike Stewart at [Anchor Network Solutions](https://anchorns.com).
+Built by Mike Stewart at [Anchor Network Solutions](https://anchornetworksolutions.com).
 
 Contributions welcome — if you improve it, open a PR. If you find a bug or hit an API quirk not documented here, open an issue.
