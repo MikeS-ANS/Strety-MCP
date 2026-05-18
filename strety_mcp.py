@@ -94,14 +94,27 @@ def _update_env_file(updates: dict) -> None:
 
 # ── Token management ─────────────────────────────────────────
 
+def _read_env_file_value(key: str) -> str:
+    """Read a value directly from strety.env file, bypassing os.environ.
+    This ensures we always see the latest token even after an in-process refresh."""
+    if _ENV_FILE.exists():
+        for line in _ENV_FILE.read_text().splitlines():
+            line = line.strip()
+            if line.startswith(key + "="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
 def _load_token() -> dict | None:
-    access_token = os.environ.get("STRETY_ACCESS_TOKEN", "").strip()
+    # Always read from file first (most up-to-date), fall back to env vars
+    access_token = _read_env_file_value("STRETY_ACCESS_TOKEN") or os.environ.get("STRETY_ACCESS_TOKEN", "").strip()
     if not access_token:
         return None
+    refresh_token = _read_env_file_value("STRETY_REFRESH_TOKEN") or os.environ.get("STRETY_REFRESH_TOKEN", "").strip()
+    expires_at_str = _read_env_file_value("STRETY_TOKEN_EXPIRES_AT") or os.environ.get("STRETY_TOKEN_EXPIRES_AT", "0")
     return {
         "access_token":  access_token,
-        "refresh_token": os.environ.get("STRETY_REFRESH_TOKEN", "").strip() or None,
-        "expires_at":    float(os.environ.get("STRETY_TOKEN_EXPIRES_AT", "0") or "0"),
+        "refresh_token": refresh_token or None,
+        "expires_at":    float(expires_at_str or "0"),
     }
 
 def _save_token(token_data: dict) -> None:
@@ -119,7 +132,9 @@ def _save_token(token_data: dict) -> None:
     _update_env_file(updates)
 
 def _is_expired() -> bool:
-    expires_at = float(os.environ.get("STRETY_TOKEN_EXPIRES_AT", "0") or "0")
+    # Read directly from file to get the latest value after any refresh
+    expires_at_str = _read_env_file_value("STRETY_TOKEN_EXPIRES_AT") or os.environ.get("STRETY_TOKEN_EXPIRES_AT", "0")
+    expires_at = float(expires_at_str or "0")
     return bool(expires_at) and time.time() >= expires_at
 
 async def get_access_token() -> str:
